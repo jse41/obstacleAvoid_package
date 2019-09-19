@@ -1,14 +1,29 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "geometry_msgs/Twist.h"
+#include "sensor_msgs/LaserScan.h"
 
 #include <sstream>
 
+float speed = 0;
+float rotate = 0; 
 
-void chatterCallback(const std_msgs::String::ConstPtr& msg) 
+sensor_msgs::LaserScan dists; 
+
+
+void chatterCallback(const sensor_msgs::LaserScan& msg) 
 {
-  ROS_INFO("I heard: [%s]", msg->data.c_str());
+  ROS_DEBUG("I heard certain dist: [%f]", msg.ranges[10]);
+  dists = msg; 
 }
 
+void cmdCallback(const geometry_msgs::Twist& msg) 
+{
+  ROS_DEBUG("Intended Linear: [%f]", msg.linear.x);
+  ROS_DEBUG("Intended Angular: [%f]", msg.angular.z);
+  speed = msg.linear.x; 
+  rotate = msg.angular.z;
+}
 
 int main(int argc, char **argv)
 {
@@ -38,9 +53,14 @@ int main(int argc, char **argv)
    * than we can send them, the number here specifies how many messages to
    * buffer up before throwing some away.
    */
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 
-  ros::Subscriber sub = n.subscribe("/robot0/laser1", 1000, chatterCallback); 
+  std_msgs::String topic;
+
+  ros::Publisher chatter_pub = n.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1000);
+
+  ros::Subscriber sub = n.subscribe("/robot0/laser_1", 1000, chatterCallback); 
+
+  ros::Subscriber input = n.subscribe("/cmd_vel", 1000, cmdCallback);
 
   ros::Rate loop_rate(10);
 
@@ -48,19 +68,22 @@ int main(int argc, char **argv)
    * A count of how many messages we have sent. This is used to create
    * a unique string for each message.
    */
-  int count = 0;
   while (ros::ok())
   {
     /**
      * This is a message object. You stuff it with data, and then publish it.
-     */
-    std_msgs::String msg;
+     
+    geometry_msgs::Twist msg;
 
     std::stringstream ss;
     ss << "hello world " << count;
     msg.data = ss.str();
+*/
+	geometry_msgs::Twist msg;
+  	msg.linear.x = speed;
+  	msg.angular.z = rotate; 
 
-    ROS_INFO("%s", msg.data.c_str());
+    //ROS_INFO("%s", msg.data.c_str());
 
     /**
      * The publish() function is how you send messages. The parameter
@@ -75,8 +98,6 @@ int main(int argc, char **argv)
 
 
     loop_rate.sleep();
-
-    ++count;
   }
 
 
