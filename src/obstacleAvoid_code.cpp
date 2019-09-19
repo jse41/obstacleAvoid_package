@@ -128,10 +128,16 @@ int main(int argc, char **argv)
   // Needs to actively avoid a wall 
   bool avoid; 
 
+  // Should turn right or left 
   bool right; 
+
+  // Makes sure doesn't print too much
+  bool hasWarned = false;
 
   // Nearest distance a wall could be going forward 
   float nearestDist = 0.3; 
+
+  ROS_INFO("Collision boundary set to [%f]", nearestDist);
 
   //Don't worry about this one 
   float avoidDist = nearestDist * sqrt(2); 
@@ -172,7 +178,11 @@ int main(int argc, char **argv)
 				right = false; 
 
 			// Logging
-			ROS_INFO("Avoiding because of Beam: [%d]", beam);
+			if(!hasWarned)
+			{
+				ROS_WARN("Avoiding because of Beam: [%d]", beam);
+				hasWarned = true; 
+			}
 		}
 	}
 	mtxDist.unlock(); 
@@ -183,6 +193,7 @@ int main(int argc, char **argv)
   		msg.linear.x = speed;
   		msg.angular.z = rotate;
   		mtxTwist.unlock(); 
+  		hasWarned = false;
 	}
 	else 
 	{
