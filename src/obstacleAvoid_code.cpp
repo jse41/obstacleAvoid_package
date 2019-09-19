@@ -6,6 +6,7 @@
 #include <math.h>
 #include <sstream>
 #include <mutex>
+#include <stdlib.h>
 
 // The speed of the robot in it's linear direction from the controller
 float speed = 0;
@@ -51,6 +52,22 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "obstacleAvoid");
 
+
+
+  int opt; 
+  char* topic_name;
+  while ((opt = getopt(argc, (argv), "n:")) != -1)
+  {
+  	switch (opt) {
+  		case 'n':
+  			topic_name = optarg;
+  			break;
+  		default:
+  			printf("The -%c is not a recognized paraneter\n", opt);
+  			break; 
+   	}
+  }
+
   /**
    * NodeHandle is the main access point to communications with the ROS system.
    * The first NodeHandle constructed will fully initialize this node, and the last
@@ -80,10 +97,12 @@ int main(int argc, char **argv)
   std_msgs::String topic;
 
   // The Publisher for the arguments sent to the robot 
-  ros::Publisher chatter_pub = n.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1000);
+  //ros::Publisher chatter_pub = n.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1000);
+  ros::Publisher chatter_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
 
   // The Subsciber to the laser for the robot 
-  ros::Subscriber sub = n.subscribe("/robot0/laser_1", 1000, chatterCallback); 
+  //ros::Subscriber sub = n.subscribe("/robot0/laser_1", 1000, chatterCallback); 
+  ros::Subscriber sub = n.subscribe("laser_1", 1000, chatterCallback); 
 
   // The subscriber to the command velocity 
   ros::Subscriber input = n.subscribe("/cmd_vel", 1000, cmdCallback);

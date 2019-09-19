@@ -1,0 +1,3 @@
+<launch>
+<node name="obstacleAvoid_node" pkg="obstacleAvoid" type="obstacleAvoid_node" ns="robot0" output="screen"/>
+</launch>
