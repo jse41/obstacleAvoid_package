@@ -1,6 +1,6 @@
 <launch>
 <arg name="namespace" default="robot0" />
-<arg name="controller" default=""/>
+<arg name="laser" default=""/>
 <include pass_all_args="true" file="$(find obstacleAvoid)/launch/obstacleAvoidsimple.launch" />
 <include file="$(find stdr_launchers)/launch/server_with_map_and_gui.launch" />
 </launch>

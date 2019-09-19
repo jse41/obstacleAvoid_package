@@ -67,6 +67,7 @@ int main(int argc, char **argv)
   // 			break; 
   //  	}
   // }
+  
   char* nameAr;
   if (argc > 1)
   {
@@ -78,11 +79,11 @@ int main(int argc, char **argv)
   }
   else
   {
-  	char nameTemp[] = "des_vel"; 
+  	char nameTemp[] = "laser_1"; 
   	nameAr = nameTemp;
-  	ROS_DEBUG("No Arg, Default Controller [%s]", nameAr);
+  	ROS_DEBUG("No Arg, Default Laser [%s]", nameAr);
   }  
-  ROS_INFO("Current Controller: [%s]", nameAr);
+  ROS_INFO("Current Laser: [%s]", nameAr);
   /**
    * NodeHandle is the main access point to communications with the ROS system.
    * The first NodeHandle constructed will fully initialize this node, and the last
@@ -117,10 +118,10 @@ int main(int argc, char **argv)
 
   // The Subsciber to the laser for the robot 
   //ros::Subscriber sub = n.subscribe("/robot0/laser_1", 1000, chatterCallback); 
-  ros::Subscriber sub = n.subscribe("laser_1", 1000, chatterCallback); 
+  ros::Subscriber sub = n.subscribe(nameAr, 1000, chatterCallback); 
 
   // The subscriber to the command velocity 
-  ros::Subscriber input = n.subscribe(nameAr, 1000, cmdCallback);
+  ros::Subscriber input = n.subscribe("des_vel", 1000, cmdCallback);
 
   // Rate in hertz that the node will write to the robot 
   ros::Rate loop_rate(10);
@@ -142,10 +143,6 @@ int main(int argc, char **argv)
   //Don't worry about this one 
   float avoidDist = nearestDist * sqrt(2); 
 
-  /**
-   * A count of how many messages we have sent. This is used to create
-   * a unique string for each message.
-   */
   while (ros::ok())
   {
     /**
@@ -164,6 +161,7 @@ int main(int argc, char **argv)
 
 	right = true;
 
+	// Look at LIDAR data
 	mtxDist.lock();
 	int max = dists.ranges.size();
 	for(int beam = max / 3; beam < 2 * max / 3; beam++)
@@ -187,6 +185,7 @@ int main(int argc, char **argv)
 	}
 	mtxDist.unlock(); 
 
+	// If nothing to avoid, do desired actions
 	if(!avoid)
 	{
 		mtxTwist.lock(); 
@@ -197,6 +196,7 @@ int main(int argc, char **argv)
 	}
 	else 
 	{
+		// Allow to move backwards if so inclined 
 		mtxTwist.lock(); 
 		if(speed < 0)
 			msg.linear.x = speed;
@@ -204,6 +204,7 @@ int main(int argc, char **argv)
 			msg.linear.x = 0;
   		mtxTwist.unlock(); 
 		
+		// Turn right or left depending on what is better
 		if(right)
 			msg.angular.z = -0.4; 
 		else
@@ -220,9 +221,7 @@ int main(int argc, char **argv)
      */
     chatter_pub.publish(msg);
 
-
     ros::spinOnce();
-
 
     loop_rate.sleep();
   }
