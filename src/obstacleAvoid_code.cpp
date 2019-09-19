@@ -4,25 +4,41 @@
 #include "sensor_msgs/LaserScan.h"
 
 #include <sstream>
+#include <mutex>
 
+// The speed of the robot in it's linear direction from the controller
 float speed = 0;
+// The angular rotation of the robot from the controller 
 float rotate = 0; 
 
+// Complete set of distances (and entire laser scan data) from the LIDAR
 sensor_msgs::LaserScan dists; 
 
+// Mutex lock just for safety 
+std::mutex mtx;
 
+// Response to Laser Data topic
 void chatterCallback(const sensor_msgs::LaserScan& msg) 
 {
+  // Logging
   ROS_DEBUG("I heard certain dist: [%f]", msg.ranges[10]);
+
+  // Move the data into Global Variable 
   dists = msg; 
 }
 
+// Response to Twist data from the user 
 void cmdCallback(const geometry_msgs::Twist& msg) 
 {
+  // Logging 
   ROS_DEBUG("Intended Linear: [%f]", msg.linear.x);
   ROS_DEBUG("Intended Angular: [%f]", msg.angular.z);
+
+  // Move the data into the global variables 
+  mtx.lock();
   speed = msg.linear.x; 
   rotate = msg.angular.z;
+  mtx.unlock(); 
 }
 
 int main(int argc, char **argv)
@@ -54,14 +70,19 @@ int main(int argc, char **argv)
    * buffer up before throwing some away.
    */
 
+  // Ideally will be populated from the commarnd args for the controller topic name 
   std_msgs::String topic;
 
+  // The Publisher for the arguments sent to the robot 
   ros::Publisher chatter_pub = n.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1000);
 
+  // The Subsciber to the laser for the robot 
   ros::Subscriber sub = n.subscribe("/robot0/laser_1", 1000, chatterCallback); 
 
+  // The subscriber to the command velocity 
   ros::Subscriber input = n.subscribe("/cmd_vel", 1000, cmdCallback);
 
+  // Rate in hertz that the node will write to the robot 
   ros::Rate loop_rate(10);
 
   /**
@@ -79,9 +100,12 @@ int main(int argc, char **argv)
     ss << "hello world " << count;
     msg.data = ss.str();
 */
+  	// Generate twist command for the robot 
 	geometry_msgs::Twist msg;
+	mtx.lock(); 
   	msg.linear.x = speed;
-  	msg.angular.z = rotate; 
+  	msg.angular.z = rotate;
+  	mtx.unlock();  
 
     //ROS_INFO("%s", msg.data.c_str());
 
