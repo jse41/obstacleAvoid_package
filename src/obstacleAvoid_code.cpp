@@ -7,6 +7,8 @@
 #include <sstream>
 #include <mutex>
 #include <stdlib.h>
+#include <string>
+
 
 // The speed of the robot in it's linear direction from the controller
 float speed = 0;
@@ -52,22 +54,35 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "obstacleAvoid");
 
-
-
-  int opt; 
-  char* topic_name;
-  while ((opt = getopt(argc, (argv), "n:")) != -1)
+  // int opt; 
+  // char* topic_name;
+  // while ((opt = getopt(argc, (argv), "n:")) != -1)
+  // {
+  // 	switch (opt) {
+  // 		case 'n':
+  // 			topic_name = optarg;
+  // 			break;
+  // 		default:
+  // 			printf("The -%c is not a recognized paraneter\n", opt);
+  // 			break; 
+  //  	}
+  // }
+  char* nameAr;
+  if (argc > 1)
   {
-  	switch (opt) {
-  		case 'n':
-  			topic_name = optarg;
-  			break;
-  		default:
-  			printf("The -%c is not a recognized paraneter\n", opt);
-  			break; 
-   	}
+  	for (int i = 1; i < argc; i++)
+	  {	 
+	  	ROS_DEBUG("Arg: [%s]", argv[i]);
+	  }
+	  nameAr = argv[1];
   }
-
+  else
+  {
+  	char nameTemp[] = "des_vel"; 
+  	nameAr = nameTemp;
+  	ROS_DEBUG("No Arg, Default Controller [%s]", nameAr);
+  }  
+  ROS_INFO("Current Controller: [%s]", nameAr);
   /**
    * NodeHandle is the main access point to communications with the ROS system.
    * The first NodeHandle constructed will fully initialize this node, and the last
@@ -105,7 +120,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub = n.subscribe("laser_1", 1000, chatterCallback); 
 
   // The subscriber to the command velocity 
-  ros::Subscriber input = n.subscribe("/cmd_vel", 1000, cmdCallback);
+  ros::Subscriber input = n.subscribe(nameAr, 1000, cmdCallback);
 
   // Rate in hertz that the node will write to the robot 
   ros::Rate loop_rate(10);
@@ -201,6 +216,12 @@ int main(int argc, char **argv)
     loop_rate.sleep();
   }
 
+
+  // Shutdown Stop Sequence 
+  geometry_msgs::Twist msg;
+  msg.linear.x = 0;
+  msg.angular.z = 0;
+  chatter_pub.publish(msg);
 
   return 0;
 }

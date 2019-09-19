@@ -1,3 +1,5 @@
 <launch>
-<node name="obstacleAvoid_node" pkg="obstacleAvoid" type="obstacleAvoid_node" ns="robot0" output="screen"/>
+<arg name="namespace" default="robot0" />
+<arg name="controller" default=""/>
+<node name="obstacleAvoid_node" pkg="obstacleAvoid" type="obstacleAvoid_node" ns="$(arg namespace)"  output="screen" args="$(arg controller)" />
 </launch>
