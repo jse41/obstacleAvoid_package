@@ -1,0 +1,5 @@
+<launch>
+<arg name="namespace" default="robot0" />
+<arg name="controller" default=""/>
+<include pass_all_args="true" file="$(find obstacleAvoid)/launch/obstacleAvoidsimple.launch" />
+</launch>
