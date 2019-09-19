@@ -3,6 +3,7 @@
 #include "geometry_msgs/Twist.h"
 #include "sensor_msgs/LaserScan.h"
 
+#include <math.h>
 #include <sstream>
 #include <mutex>
 
@@ -15,7 +16,10 @@ float rotate = 0;
 sensor_msgs::LaserScan dists; 
 
 // Mutex lock just for safety 
-std::mutex mtx;
+std::mutex mtxTwist;
+
+// Mutex lock for distances 
+std::mutex mtxDist; 
 
 // Response to Laser Data topic
 void chatterCallback(const sensor_msgs::LaserScan& msg) 
@@ -24,7 +28,9 @@ void chatterCallback(const sensor_msgs::LaserScan& msg)
   ROS_DEBUG("I heard certain dist: [%f]", msg.ranges[10]);
 
   // Move the data into Global Variable 
+  mtxDist.lock();
   dists = msg; 
+  mtxDist.unlock(); 
 }
 
 // Response to Twist data from the user 
@@ -35,10 +41,10 @@ void cmdCallback(const geometry_msgs::Twist& msg)
   ROS_DEBUG("Intended Angular: [%f]", msg.angular.z);
 
   // Move the data into the global variables 
-  mtx.lock();
+  mtxTwist.lock();
   speed = msg.linear.x; 
   rotate = msg.angular.z;
-  mtx.unlock(); 
+  mtxTwist.unlock(); 
 }
 
 int main(int argc, char **argv)
@@ -85,6 +91,17 @@ int main(int argc, char **argv)
   // Rate in hertz that the node will write to the robot 
   ros::Rate loop_rate(10);
 
+  // Needs to actively avoid a wall 
+  bool avoid; 
+
+  bool right; 
+
+  // Nearest distance a wall could be going forward 
+  float nearestDist = 0.3; 
+
+  //Don't worry about this one 
+  float avoidDist = nearestDist * sqrt(2); 
+
   /**
    * A count of how many messages we have sent. This is used to create
    * a unique string for each message.
@@ -102,10 +119,51 @@ int main(int argc, char **argv)
 */
   	// Generate twist command for the robot 
 	geometry_msgs::Twist msg;
-	mtx.lock(); 
-  	msg.linear.x = speed;
-  	msg.angular.z = rotate;
-  	mtx.unlock();  
+
+	avoid = false;
+
+	right = true;
+
+	mtxDist.lock();
+	int max = dists.ranges.size();
+	for(int beam = max / 3; beam < 2 * max / 3; beam++)
+	{
+		if(dists.ranges[beam] < avoidDist)
+		{
+			// There is a wall too close 
+			avoid = true; 
+
+			// Should I turn right or left
+			if(beam < max / 2)
+				right = false; 
+
+			// Logging
+			ROS_INFO("Avoiding because of Beam: [%d]", beam);
+		}
+	}
+	mtxDist.unlock(); 
+
+	if(!avoid)
+	{
+		mtxTwist.lock(); 
+  		msg.linear.x = speed;
+  		msg.angular.z = rotate;
+  		mtxTwist.unlock(); 
+	}
+	else 
+	{
+		mtxTwist.lock(); 
+		if(speed < 0)
+			msg.linear.x = speed;
+		else
+			msg.linear.x = 0;
+  		mtxTwist.unlock(); 
+		
+		if(right)
+			msg.angular.z = -0.4; 
+		else
+			msg.angular.z = 0.4;
+	}
 
     //ROS_INFO("%s", msg.data.c_str());
 
